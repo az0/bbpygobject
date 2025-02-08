@@ -60,38 +60,21 @@ jobs:
           %PYTHON_EXE% -m ensurepip --upgrade
           set PATH=%PATH%;%PYSCRIPT_DIR%
           %PYTHON_EXE% -m pip install --upgrade pip wheel setuptools build
-          %PYTHON_EXE% -m pip install pycairo meson ninja
-
-      - name: Set up environment
-        shell: cmd
-        run: |
-          set LIB=%LIB%;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\lib
-          set INCLUDE=%INCLUDE%;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\include;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\include\cairo;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\include\glib-2.0;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\include\gobject-introspection-1.0;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\lib\glib-2.0\include
+          %PYTHON_EXE% -m pip install pycairo meson ninja pipx
+          %PYTHON_EXE% -m pipx ensurepath
+          pipx isntall gvsbuild
 
       - name: Build PyGObject
         shell: cmd
         run: |
-          cd pygobject-%PYGOBJECT_VERSION%
+           subst X: ${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows
+           subst I: %LIB%;${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\include
+           set LIB=%LIB%;X:lib
+           set INCLUDE=%INCLUDE%;I:\;I:\cairo;I:\glib-2.0;I:\gobject-introspection-1.0;X:\lib\glib-2.0\include
+           cd pygobject-%PYGOBJECT_VERSION%
+           gvsbuild build --enable-gi --py-wheel pygobject
+           dir /s /b | find ".whl"
           
-          :: Create Python libs directory and copy required lib
-          mkdir "${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\tools\python3\libs"
-          copy "${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\lib\python311.lib" "${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\tools\python3\libs"
-          
-          :: Configure and build with Meson
-          "%PYSCRIPT_DIR%\meson" setup builddir ^
-            --prefix="%CD%\dist" ^
-            --backend=ninja ^
-            -Dpython="%PYTHON_EXE%" ^
-            -Dbuildtype=release ^
-            --includedir "${{ github.workspace }}\gtk${{ env.GTK_VERSION }}\vcpkg_installed\x86-windows\include\python3.11"
-          
-          "%PYSCRIPT_DIR%\ninja" -C builddir
-          "%PYSCRIPT_DIR%\ninja" -C builddir install
-          
-          :: Build wheel
-          cd dist
-          "%PYTHON_EXE%" -m build --wheel
-
       - name: Upload wheel
         uses: actions/upload-artifact@v4
         with:
