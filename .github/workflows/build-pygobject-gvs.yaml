@@ -22,6 +22,7 @@ jobs:
       PYTHON_EXE: '${{ github.workspace }}\gtk3.24\vcpkg_installed\x86-windows\tools\python3\python.exe'
       PYSCRIPT_DIR: '${{ github.workspace }}\gtk3.24\vcpkg_installed\x86-windows\tools\python3\scripts'
       PKG_CONFIG_PATH: '${{ github.workspace }}\gtk3.24\vcpkg_installed\x86-windows\lib\pkgconfig'
+      PIPX_HOME: '${{ github.workspace }}\pipx'
 
     steps:
       - uses: actions/checkout@v3
@@ -46,12 +47,6 @@ jobs:
           cd gtk${{ env.GTK_VERSION }}
           7z x gtk${{ env.GTK_VERSION }}-x86-windows.zip
 
-      - name: Download PyGObject source
-        shell: bash
-        run: |
-          curl -L https://download.gnome.org/sources/pygobject/3.51/pygobject-${{ env.PYGOBJECT_VERSION }}.tar.xz -o pygobject.tar.xz
-          tar xf pygobject.tar.xz
-
       - name: Install build dependencies
         shell: cmd
         env:
@@ -60,9 +55,16 @@ jobs:
           %PYTHON_EXE% -m ensurepip --upgrade
           set PATH=%PATH%;%PYSCRIPT_DIR%
           %PYTHON_EXE% -m pip install --upgrade pip wheel setuptools build
+          mkdir %PIPX_HOME%
           %PYTHON_EXE% -m pip install pycairo meson ninja pipx
           %PYTHON_EXE% -m pipx ensurepath
-          pipx isntall gvsbuild
+          pipx install gvsbuild
+
+      - name: Download PyGObject source
+        shell: bash
+        run: |
+          curl -L https://download.gnome.org/sources/pygobject/3.51/pygobject-${{ env.PYGOBJECT_VERSION }}.tar.xz -o pygobject.tar.xz
+          tar xf pygobject.tar.xz
 
       - name: Build PyGObject
         shell: cmd
